@@ -4,51 +4,42 @@ class Request:
         self.valid = True
 
 
-class RequestHandler:
-    def __init__(self, handler=None):
-        self.handler = handler
-
-    def handle_request(self, request):
-        if self.handler:
-            self.handler.handle_request(request)
-
-
-class AuthenticationHandler(RequestHandler):
-    def handle_request(self, request):
+def auth_handler(func):
+    def wrapper(request):
         if "token" not in request.data:
             request.valid = False
             print("Authentication failed")
-        super().handle_request(request)
+        return func(request)
+    return wrapper
 
 
-class DataValidationHandler(RequestHandler):
-    def handle_request(self, request):
-        if not request.valid:
-            return
+def data_handler(func):
+    def wrapper(request):
         if "data" not in request.data:
             request.valid = False
             print("Data validation failed")
-        super().handle_request(request)
+        return func(request)
+    return wrapper
 
 
-class LoggingHandler(RequestHandler):
-    def handle_request(self, request):
-        if not request.valid:
-            return
-        print("Logging request")
-        super().handle_request(request)
+def login_handler(func):
+    def wrapper(request):
+        if request.valid:
+            print("Logging request")
+        return func(request)
+    return wrapper
+
+
+@auth_handler
+@data_handler
+@login_handler
+def request_handler(request):
+    if not request.valid:
+        return "Failed"
+    return "Success"
 
 
 if __name__ == "__main__":
     new_request = Request({"token": "some_token", "data": "some_data"})
 
-    authentication_handler = AuthenticationHandler()
-    validation_handler = DataValidationHandler(authentication_handler)
-    logging_handler = LoggingHandler(validation_handler)
-
-    logging_handler.handle_request(new_request)
-
-    if new_request.valid:
-        print("Success")
-    else:
-        print("Failed")
+    print(request_handler(new_request))
